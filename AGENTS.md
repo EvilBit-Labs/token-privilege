@@ -97,8 +97,8 @@ Special rules:
 
 ## CI
 
-CI runs on push to `main` and PRs. Pipeline: quality (fmt + clippy) → test → cross-platform (Linux, macOS, Windows) → coverage (Codecov). Windows runner is where actual Win32 FFI tests execute.
+CI runs on push to `main` and PRs. Pipeline: quality (fmt + clippy, Windows) → test (Windows) → stub validation (single Linux job) → coverage (Windows, Codecov). Windows is the primary runner since all real FFI tests require it.
 
 ## Platform Targets
 
-`x86_64-unknown-linux-gnu`, `x86_64-apple-darwin`, `aarch64-apple-darwin`, `x86_64-pc-windows-msvc`
+Primary: `x86_64-pc-windows-msvc` (CI). Stub validation: `x86_64-unknown-linux-gnu`. Also builds on `x86_64-apple-darwin`, `aarch64-apple-darwin` (local dev).
