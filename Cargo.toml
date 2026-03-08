@@ -20,7 +20,6 @@ exclude = [
     "/.git",
     "/.vscode",
     "/docs",
-    "/fuzz",
     "/reports",
     # CI / tooling config
     "/.coderabbitai.yaml",
@@ -139,10 +138,15 @@ module_name_repetitions  = "warn"
 similar_names            = "warn"
 too_many_lines           = "warn"
 
-[features]
-__fuzz = []
-
 [dependencies]
+thiserror = "2.0"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Threading",
+] }
 
 [dev-dependencies]
 proptest = "1.6.0"
@@ -151,7 +155,7 @@ tempfile = "3.26.0"
 [lints]
 workspace = true
 
-# NOTE: These profiles only apply when mmap-guard is the root package
+# NOTE: These profiles only apply when token-privilege is the root package
 # (e.g., running tests in release mode). Downstream consumers use their own profiles.
 [profile.release]
 lto           = "thin"
