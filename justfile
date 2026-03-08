@@ -10,7 +10,6 @@ set ignore-comments := true
 # See mise.toml for tool versions
 
 mise_exec := "mise exec --"
-root := justfile_dir()
 
 # =============================================================================
 # GENERAL COMMANDS
@@ -37,8 +36,6 @@ alias format-just := fmt-justfile
 
 # Main format recipe - calls all formatters
 format: fmt format-json-yaml format-docs fmt-justfile
-
-# Individual format recipes
 
 format-json-yaml:
     @{{ mise_exec }} prettier --write "**/*.{json,yaml,yml}"
@@ -69,9 +66,8 @@ lint-justfile:
 # Main lint recipe - calls all sub-linters
 lint: lint-rust lint-actions lint-docs lint-justfile
 
-# Individual lint recipes
 lint-actions:
-    @{{ mise_exec }} actionlint .github/workflows/audit.yml .github/workflows/ci.yml .github/workflows/compat.yml .github/workflows/docs.yml .github/workflows/fuzz.yml .github/workflows/release-plz.yml .github/workflows/scorecard.yml .github/workflows/security.yml
+    @{{ mise_exec }} actionlint .github/workflows/audit.yml .github/workflows/ci.yml .github/workflows/compat.yml .github/workflows/docs.yml .github/workflows/release-plz.yml .github/workflows/scorecard.yml .github/workflows/security.yml
 
 lint-docs:
     @{{ mise_exec }} markdownlint-cli2 docs/**/*.md README.md
@@ -113,14 +109,6 @@ test-ci:
 # Run all tests including ignored/slow tests across workspace
 test-all:
     @{{ mise_exec }} cargo nextest run --workspace --no-capture -- --ignored
-
-# =============================================================================
-# BENCHMARKING
-# =============================================================================
-
-# Run all benchmarks
-bench:
-    @{{ mise_exec }} cargo bench --workspace
 
 # =============================================================================
 # SECURITY AND AUDITING
@@ -181,63 +169,8 @@ coverage-summary:
 coverage-summary:
     $env:RUSTFLAGS = "--cfg coverage"; {{ mise_exec }} cargo llvm-cov --workspace
 
-# Full local CI parity check (dist-plan excluded — library crate has no binary targets)
+# Full local CI parity check
 ci-check: pre-commit-run fmt-check lint-rust lint-rust-min test-ci build-release audit coverage-check docs-check
-
-# =============================================================================
-# LOCAL CI SIMULATION (act)
-# =============================================================================
-
-act_flags := "--container-architecture linux/amd64"
-# Workflows that only trigger on schedule/PR use workflow_dispatch to run in act
-act_dispatch := "workflow_dispatch"
-
-# Dry-run all CI workflows locally (no containers started)
-act-dry-run:
-    @act {{ act_flags }} -n -W .github/workflows/ci.yml
-    @act {{ act_flags }} -n -W .github/workflows/audit.yml {{ act_dispatch }}
-    @act {{ act_flags }} -n -W .github/workflows/compat.yml {{ act_dispatch }}
-    @act {{ act_flags }} -n -W .github/workflows/fuzz.yml {{ act_dispatch }}
-    @act {{ act_flags }} -n -W .github/workflows/security.yml {{ act_dispatch }}
-
-# Dry-run a specific workflow (use workflow_dispatch for schedule-only workflows)
-act-dry-run-workflow workflow event=act_dispatch:
-    @act {{ act_flags }} -n -W .github/workflows/{{ workflow }}.yml {{ event }}
-
-# Run all CI workflows locally (excludes release-plz, docs publish, scorecard)
-act-run:
-    act {{ act_flags }} -W .github/workflows/ci.yml
-    act {{ act_flags }} -W .github/workflows/audit.yml {{ act_dispatch }}
-    act {{ act_flags }} -W .github/workflows/compat.yml {{ act_dispatch }}
-    act {{ act_flags }} -W .github/workflows/fuzz.yml {{ act_dispatch }}
-    act {{ act_flags }} -W .github/workflows/security.yml {{ act_dispatch }}
-
-# Run a specific workflow locally
-act-run-workflow workflow event=act_dispatch:
-    act {{ act_flags }} -W .github/workflows/{{ workflow }}.yml {{ event }}
-
-# Run a specific job from a workflow locally
-act-run-job workflow job event=act_dispatch:
-    act {{ act_flags }} -j {{ job }} -W .github/workflows/{{ workflow }}.yml {{ event }}
-
-# =============================================================================
-# DISTRIBUTION AND PACKAGING
-# =============================================================================
-
-dist:
-    @{{ mise_exec }} dist build
-
-dist-check:
-    @{{ mise_exec }} dist check
-
-dist-plan:
-    @{{ mise_exec }} dist plan
-
-# Regenerate cargo-dist CI workflow safely
-dist-generate-ci:
-    {{ mise_exec }} dist generate --ci github
-    @echo "Generated CI workflow. Remember to fix any expression errors if they exist."
-    @echo "Run 'just lint-actions' to validate the generated workflow."
 
 # =============================================================================
 # DOCUMENTATION
