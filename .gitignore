@@ -1,0 +1,37 @@
+# Rust
+target/
+debug/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# Coverage
+lcov.info
+
+# Documentation (built artifacts)
+docs/book/
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+*.vsix
+.history/
+.ionide
+
+# Fuzzing (machine-generated, not committed)
+fuzz/artifacts/
+fuzz/corpus/
+
+# Testing
+**/mutants.out*/
+
+# Local/personal config
+.claude.local.md
+.env*
+!.env.example
+reports/
