@@ -8,7 +8,7 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 
 ## Gotchas
 
-Before working in a specific area, check [GOTCHAS.md](GOTCHAS.md) for hard-won lessons and edge cases organized by domain. It covers unsafe code rules, clippy/rustdoc pitfalls, CI quirks, pre-commit hook behavior, and platform-specific mmap limitations.
+Before working in a specific area, check [GOTCHAS.md](GOTCHAS.md) for hard-won lessons and edge cases organized by domain. It covers unsafe code rules, clippy/rustdoc pitfalls, CI quirks, pre-commit hook behavior, and platform-specific considerations.
 
 ## Prerequisites
 
