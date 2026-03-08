@@ -1,0 +1,49 @@
+name: Compatibility
+
+on:
+    schedule:
+        - cron: "0 6 * * 1" # Weekly, Monday 06:00 UTC
+    pull_request:
+        branches:
+            - main
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+defaults:
+    run:
+        shell: bash
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    CARGO_TERM_COLOR: always
+
+jobs:
+    compat:
+        if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                toolchain:
+                    - stable
+                    - stable minus 2 releases
+                    - stable minus 5 releases
+                    - "1.85.0" # MSRV — edition 2024 minimum
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+            - name: Install Rust toolchain
+              uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
+              with:
+                  toolchain: ${{ matrix.toolchain }}
+
+            - name: Build
+              run: cargo build
+
+            - name: Run tests
+              run: cargo test
