@@ -1,0 +1,51 @@
+[book]
+authors     = [ "UncleSp1d3r", "KryptoKat", "token-privilege Contributors" ]
+language    = "en"
+src         = "src"
+title       = "token-privilege Developer Guide"
+description = "A guide to the token-privilege library for safe, guarded Windows token privilege and elevation checks in Rust."
+
+[output.html]
+default-theme        = "navy"
+preferred-dark-theme = "navy"
+git-repository-url   = "https://github.com/EvilBit-Labs/token-privilege"
+edit-url-template    = "https://github.com/EvilBit-Labs/token-privilege/edit/main/docs/{path}"
+additional-js        = [ "whichlang.js" ]
+additional-css       = [ "whichlang.css" ]
+
+[output.html.fold]
+enable = true
+level  = 1
+
+[output.html.playground]
+copyable     = true
+copy-js      = true
+line-numbers = false
+editable     = false
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[preprocessor.toc]
+command  = "mdbook-toc"
+marker   = "[TOC]"
+renderer = [ "html" ]
+
+[preprocessor.tabs]
+command = "mdbook-tabs"
+
+[preprocessor.links]
+
+[output.html.search]
+enable              = true
+limit-results       = 30
+teaser-word-count   = 30
+use-boolean-and     = true
+boost-title         = 2
+boost-hierarchy     = 1
+boost-paragraph     = 1
+expand              = true
+heading-split-level = 3
+
+[output.html.print]
+enable = true
