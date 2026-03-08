@@ -2,5 +2,164 @@
 name = "token-privilege"
 version = "0.1.0"
 edition = "2024"
+authors = [
+    "UncleSp1d3r <unclespid3r@evilbitlabs.io>",
+    "KryptoKat <kryptokat@evilbitlabs.io>",
+]
+description = "Safe Rust wrapper around Windows process token privilege and elevation detection APIs"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/EvilBit-Labs/token-privilege"
+documentation = "https://docs.rs/token-privilege"
+keywords = ["token", "privilege", "elevation", "windows", "security"]
+categories = ["security", "windows"]
+rust-version = "1.85"
+readme = "README.md"
+exclude = [
+    # Directories
+    "/.github",
+    "/.git",
+    "/.vscode",
+    "/docs",
+    "/fuzz",
+    "/reports",
+    # CI / tooling config
+    "/.coderabbitai.yaml",
+    "/.editorconfig",
+    "/.markdownlint-cli2.jsonc",
+    "/.markdownlint.json",
+    "/.mdformat.toml",
+    "/.mergify.yml",
+    "/.pre-commit-config.yaml",
+    "/.prettierignore",
+    # Language version files
+    "/.bun-version",
+    "/.python-version",
+    # Build / release tooling
+    "about.hbs",
+    "about.toml",
+    "cliff.toml",
+    "codecov.yml",
+    "deny.toml",
+    "justfile",
+    "mise.lock",
+    "mise.toml",
+    "release-plz.toml",
+    "rust-toolchain.toml",
+    "rustfmt.toml",
+    # Docs shipped via docs.rs / repository, not the crate
+    "AGENTS.md",
+    "CLAUDE.md",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "GOTCHAS.md",
+    # THIRD_PARTY_NOTICES.md intentionally included for license compliance
+    # Misc
+    "/.env.*",
+    "*.orig",
+]
+
+# Workspace lint configuration
+[workspace.lints.rust]
+# NOTE: unsafe_code is NOT forbidden — this crate IS the unsafe boundary
+warnings = "deny"
+
+[workspace.lints.clippy]
+# Pedantic clippy configuration with proper priorities
+correctness = { level = "deny", priority = -1 }
+suspicious  = { level = "warn", priority = -1 }
+pedantic    = { level = "warn", priority = -1 }
+nursery     = { level = "warn", priority = -1 }
+cargo       = { level = "warn", priority = -1 }
+
+# Security-focused linting
+as_conversions          = "warn"
+as_ptr_cast_mut         = "warn"
+cast_ptr_alignment      = "warn"
+float_cmp               = "warn"
+indexing_slicing        = "warn"
+arithmetic_side_effects = "warn"
+integer_division        = "warn"
+modulo_arithmetic       = "warn"
+expect_used             = "warn"
+
+# Security anti-patterns
+dbg_macro        = "warn"
+todo             = "warn"
+unimplemented    = "warn"
+unreachable      = "warn"
+panic            = "deny"
+unwrap_used      = "deny"
+exhaustive_enums = "warn"
+
+# The single unsafe block MUST be documented
+undocumented_unsafe_blocks = "deny"
+
+# Performance and correctness
+perf                          = { level = "warn", priority = -1 }
+clone_on_ref_ptr              = "warn"
+create_dir                    = "warn"
+exit                          = "warn"
+filetype_is_file              = "warn"
+large_stack_arrays            = "warn"
+let_underscore_must_use       = "warn"
+lossy_float_literal           = "warn"
+map_err_ignore                = "warn"
+match_same_arms               = "warn"
+missing_assert_message        = "warn"
+missing_docs_in_private_items = "allow"
+mutex_atomic                  = "warn"
+mutex_integer                 = "warn"
+rc_buffer                     = "warn"
+rc_mutex                      = "warn"
+redundant_type_annotations    = "warn"
+same_name_method              = "warn"
+self_named_module_files       = "warn"
+str_to_string                 = "warn"
+string_add                    = "warn"
+string_add_assign             = "warn"
+string_lit_as_bytes           = "warn"
+trivial_regex                 = "warn"
+unnecessary_self_imports      = "warn"
+unseparated_literal_suffix    = "warn"
+unused_async                  = "warn"
+verbose_file_reads            = "warn"
+wildcard_enum_match_arm       = "warn"
+zero_sized_map_values         = "warn"
+
+# Proper, but pedantic
+cargo_common_metadata    = "warn"
+multiple_crate_versions  = "warn"
+missing_errors_doc       = "warn"
+missing_panics_doc       = "deny"
+must_use_candidate       = "warn"
+cast_possible_truncation = "warn"
+cast_precision_loss      = "warn"
+cast_sign_loss           = "warn"
+module_name_repetitions  = "warn"
+similar_names            = "warn"
+too_many_lines           = "warn"
+
+[features]
+__fuzz = []
 
 [dependencies]
+
+[dev-dependencies]
+proptest = "1.6.0"
+tempfile = "3.26.0"
+
+[lints]
+workspace = true
+
+# NOTE: These profiles only apply when mmap-guard is the root package
+# (e.g., running tests in release mode). Downstream consumers use their own profiles.
+[profile.release]
+lto           = "thin"
+codegen-units = 1
+strip         = true
+
+[profile.dist]
+inherits        = "release"
+lto             = "thin"
+overflow-checks = true
+strip           = true
