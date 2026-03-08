@@ -1,0 +1,56 @@
+queue_rules:
+  - name: default
+    merge_method: squash
+    queue_conditions:
+      - check-success = Code Quality
+      - check-success = Test (Windows)
+    merge_conditions:
+      - check-success = Code Quality
+      - check-success = Test (Windows)
+
+merge_protections:
+  - name: CI must pass
+    if:
+      - base = main
+    success_conditions:
+      - "#commits-behind <= 3"
+      - check-success = Code Quality
+      - check-success = Test (Windows)
+
+pull_request_rules:
+  - name: Auto-approve Dependabot PRs when CI passes
+    conditions:
+      - author = dependabot[bot]
+      - check-success = Code Quality
+      - check-success = Test (Windows)
+    actions:
+      review:
+        type: APPROVE
+
+  - name: Auto-approve Dosubot PRs when CI passes
+    conditions:
+      - author = dosubot[bot]
+      - check-success = Code Quality
+      - check-success = Test (Windows)
+    actions:
+      review:
+        type: APPROVE
+
+  - name: Auto-merge release-plz PRs
+    conditions:
+      - author = release-plz[bot]
+      - label = release
+      - check-success = Code Quality
+      - check-success = Test (Windows)
+    actions:
+      queue:
+        name: default
+
+  - name: Keep bot PRs up to date
+    conditions:
+      - or:
+          - author = dependabot[bot]
+          - author = dosubot[bot]
+          - author = release-plz[bot]
+    actions:
+      update: {}
