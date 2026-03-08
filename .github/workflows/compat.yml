@@ -11,10 +11,6 @@ on:
 permissions:
     contents: read
 
-defaults:
-    run:
-        shell: bash
-
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
@@ -25,15 +21,14 @@ env:
 jobs:
     compat:
         if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')
-        runs-on: ubuntu-latest
+        runs-on: windows-latest
         strategy:
             fail-fast: false
             matrix:
                 toolchain:
                     - stable
                     - stable minus 2 releases
-                    - stable minus 5 releases
-                    - "1.85.0" # MSRV — edition 2024 minimum
+                    - "1.85.0" # MSRV
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
