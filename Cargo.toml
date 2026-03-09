@@ -12,7 +12,7 @@ repository = "https://github.com/EvilBit-Labs/token-privilege"
 documentation = "https://docs.rs/token-privilege"
 homepage = "https://evilbitlabs.io/token-privilege"
 keywords = ["token", "privilege", "elevation", "windows", "security"]
-categories = ["security", "windows"]
+categories = ["security", "os::windows-apis", "platform", "user"]
 rust-version = "1.91"
 readme = "README.md"
 exclude = [
@@ -158,8 +158,8 @@ workspace = true
 # NOTE: These profiles only apply when token-privilege is the root package
 # (e.g., running tests in release mode). Downstream consumers use their own profiles.
 [profile.release]
-lto           = "thin"
-codegen-units = 1
+lto             = "thin"
+codegen-units   = 1
 strip           = true
 overflow-checks = true
 
