@@ -18,6 +18,12 @@ use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 use crate::PrivilegeInfo;
 use crate::error::TokenPrivilegeError;
 
+// Compile-time guarantee that `TOKEN_ELEVATION` fits in a `u32` size parameter.
+const _: () = assert!(
+    std::mem::size_of::<TOKEN_ELEVATION>() <= u32::MAX as usize,
+    "TOKEN_ELEVATION size must fit in u32"
+);
+
 /// RAII wrapper for Win32 `HANDLE` that calls `CloseHandle` on drop.
 pub(crate) struct OwnedHandle(HANDLE);
 
@@ -53,8 +59,8 @@ pub(crate) fn open_current_process_token() -> Result<OwnedHandle, TokenPrivilege
 pub(crate) fn query_elevation(token: &OwnedHandle) -> Result<bool, TokenPrivilegeError> {
     let mut elevation = TOKEN_ELEVATION::default();
     let mut return_length = 0u32;
-    let elevation_size = u32::try_from(std::mem::size_of::<TOKEN_ELEVATION>())
-        .expect("TOKEN_ELEVATION size fits in u32");
+    // Safe: compile-time assertion above guarantees this fits in u32.
+    const ELEVATION_SIZE: u32 = std::mem::size_of::<TOKEN_ELEVATION>() as u32;
 
     // SAFETY: We pass a valid token handle and a correctly-sized buffer.
     // `GetTokenInformation` writes at most `elevation_size` bytes into
@@ -64,7 +70,7 @@ pub(crate) fn query_elevation(token: &OwnedHandle) -> Result<bool, TokenPrivileg
             token.0,
             windows::Win32::Security::TokenElevation,
             Some(std::ptr::from_mut(&mut elevation).cast()),
-            elevation_size,
+            ELEVATION_SIZE,
             &mut return_length,
         )
         .map_err(|e| TokenPrivilegeError::QueryFailed(io::Error::from(e)))?;
@@ -239,7 +245,9 @@ mod tests {
 
     #[test]
     fn query_elevation_returns_bool() {
-        let token = open_current_process_token().expect("open token");
+        let Ok(token) = open_current_process_token() else {
+            panic!("failed to open current process token");
+        };
         let result = query_elevation(&token);
         assert!(result.is_ok(), "should query elevation");
     }
@@ -258,22 +266,29 @@ mod tests {
 
     #[test]
     fn check_change_notify_enabled() {
-        let token = open_current_process_token().expect("open token");
-        let luid = lookup_privilege_value("SeChangeNotifyPrivilege").expect("lookup");
-        let enabled = check_privilege_enabled(&token, luid);
-        assert!(enabled.is_ok(), "check should succeed");
+        let Ok(token) = open_current_process_token() else {
+            panic!("failed to open current process token");
+        };
+        let Ok(luid) = lookup_privilege_value("SeChangeNotifyPrivilege") else {
+            panic!("failed to look up SeChangeNotifyPrivilege");
+        };
+        let result = check_privilege_enabled(&token, luid);
+        assert!(result.is_ok(), "check should succeed");
         assert!(
-            enabled.expect("checked"),
+            matches!(result, Ok(true)),
             "SeChangeNotifyPrivilege should be enabled"
         );
     }
 
     #[test]
     fn enumerate_privileges_non_empty() {
-        let token = open_current_process_token().expect("open token");
-        let privs = enumerate_token_privileges(&token);
-        assert!(privs.is_ok(), "enumeration should succeed");
-        let list = privs.expect("enumerated");
-        assert!(!list.is_empty(), "should have at least one privilege");
+        let Ok(token) = open_current_process_token() else {
+            panic!("failed to open current process token");
+        };
+        let result = enumerate_token_privileges(&token);
+        assert!(result.is_ok(), "enumeration should succeed");
+        if let Ok(list) = result {
+            assert!(!list.is_empty(), "should have at least one privilege");
+        }
     }
 }
