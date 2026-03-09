@@ -136,7 +136,7 @@ _coverage +args:
 [private]
 [windows]
 _coverage +args:
-    Remove-Item -Recurse -Force target/llvm-cov-target -ErrorAction SilentlyContinue
+    if (Test-Path target/llvm-cov-target) { Remove-Item -Recurse -Force target/llvm-cov-target }
     $env:RUSTFLAGS = "--cfg coverage"; {{ mise_exec }} cargo llvm-cov --workspace --lcov --output-path lcov.info {{ args }}
 
 coverage:
