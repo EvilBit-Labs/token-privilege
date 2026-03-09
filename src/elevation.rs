@@ -27,8 +27,12 @@ mod tests {
 
     #[test]
     fn is_elevated_is_consistent() {
-        let first = is_elevated().expect("first call");
-        let second = is_elevated().expect("second call");
-        assert_eq!(first, second, "elevation status should be stable");
+        let first = is_elevated();
+        assert!(first.is_ok(), "first call should succeed");
+        let second = is_elevated();
+        assert!(second.is_ok(), "second call should succeed");
+        if let (Ok(f), Ok(s)) = (first, second) {
+            assert_eq!(f, s, "elevation status should be stable");
+        }
     }
 }

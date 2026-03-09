@@ -52,6 +52,7 @@ pub use error::TokenPrivilegeError;
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct PrivilegeInfo {
     /// The privilege name (e.g., `"SeDebugPrivilege"`).
     pub name: String,
@@ -114,8 +115,8 @@ pub mod privileges {
 
 /// Check if the current process is running with elevated (Administrator) privileges.
 ///
-/// Returns `true` if the process token has elevation type `TokenElevationTypeFull`
-/// (elevated via UAC) or `TokenElevationTypeDefault` (UAC disabled, user is admin).
+/// Returns `true` if the process token's `TokenIsElevated` field is nonzero,
+/// indicating the process is running elevated (typically via UAC).
 ///
 /// # Errors
 ///
@@ -206,7 +207,8 @@ pub const fn is_privilege_enabled(_privilege_name: &str) -> Result<bool, TokenPr
 /// # Platform Support
 ///
 /// This is a non-Windows stub that always returns an error. On Windows, this
-/// enumerates token privileges and checks for the named privilege.
+/// checks whether the named privilege exists on the process token, regardless
+/// of its enabled state.
 ///
 /// # Errors
 ///

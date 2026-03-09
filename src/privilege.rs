@@ -29,13 +29,11 @@ pub fn is_privilege_enabled(privilege_name: &str) -> Result<bool, TokenPrivilege
 /// name is invalid.
 pub fn has_privilege(privilege_name: &str) -> Result<bool, TokenPrivilegeError> {
     let token = ffi::open_current_process_token()?;
-    let luid = ffi::lookup_privilege_value(privilege_name)?;
+    // Validate the privilege name exists before enumerating
+    let _luid = ffi::lookup_privilege_value(privilege_name)?;
 
     let privileges = ffi::enumerate_token_privileges(&token)?;
-    Ok(privileges.iter().any(|p| {
-        ffi::lookup_privilege_value(&p.name)
-            .is_ok_and(|p_luid| p_luid.LowPart == luid.LowPart && p_luid.HighPart == luid.HighPart)
-    }))
+    Ok(privileges.iter().any(|p| p.name == privilege_name))
 }
 
 /// Enumerate all privileges on the current process token.
@@ -60,20 +58,18 @@ mod tests {
     fn change_notify_is_enabled() {
         let result = is_privilege_enabled("SeChangeNotifyPrivilege");
         assert!(result.is_ok(), "should succeed");
-        assert!(
-            result.expect("checked"),
-            "SeChangeNotifyPrivilege should be enabled"
-        );
+        if let Ok(is_enabled) = result {
+            assert!(is_enabled, "SeChangeNotifyPrivilege should be enabled");
+        }
     }
 
     #[test]
     fn has_change_notify_privilege() {
         let result = has_privilege("SeChangeNotifyPrivilege");
         assert!(result.is_ok(), "should succeed");
-        assert!(
-            result.expect("checked"),
-            "SeChangeNotifyPrivilege should be present"
-        );
+        if let Ok(has_priv) = result {
+            assert!(has_priv, "SeChangeNotifyPrivilege should be present");
+        }
     }
 
     #[test]
@@ -86,25 +82,34 @@ mod tests {
     fn enumerate_privileges_non_empty() {
         let result = enumerate_privileges();
         assert!(result.is_ok(), "enumeration should succeed");
-        let privs = result.expect("enumerated");
-        assert!(!privs.is_empty(), "should have at least one privilege");
+        if let Ok(privs) = result {
+            assert!(!privs.is_empty(), "should have at least one privilege");
+        }
     }
 
     #[test]
     fn enumerate_contains_change_notify() {
-        let privs = enumerate_privileges().expect("enumerated");
-        let found = privs.iter().any(|p| p.name == "SeChangeNotifyPrivilege");
-        assert!(found, "should contain SeChangeNotifyPrivilege");
+        let result = enumerate_privileges();
+        assert!(result.is_ok(), "enumeration should succeed");
+        if let Ok(privs) = result {
+            let found = privs.iter().any(|p| p.name == "SeChangeNotifyPrivilege");
+            assert!(found, "should contain SeChangeNotifyPrivilege");
+        }
     }
 
     #[test]
     fn change_notify_is_enabled_in_enumeration() {
-        let privs = enumerate_privileges().expect("enumerated");
-        let cn = privs.iter().find(|p| p.name == "SeChangeNotifyPrivilege");
-        assert!(cn.is_some(), "should find SeChangeNotifyPrivilege");
-        assert!(
-            cn.expect("found").enabled,
-            "SeChangeNotifyPrivilege should be enabled"
-        );
+        let result = enumerate_privileges();
+        assert!(result.is_ok(), "enumeration should succeed");
+        if let Ok(privs) = result {
+            let cn = privs.iter().find(|p| p.name == "SeChangeNotifyPrivilege");
+            assert!(cn.is_some(), "should find SeChangeNotifyPrivilege");
+            if let Some(change_notify) = cn {
+                assert!(
+                    change_notify.enabled,
+                    "SeChangeNotifyPrivilege should be enabled"
+                );
+            }
+        }
     }
 }

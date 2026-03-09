@@ -300,11 +300,12 @@ mod tests {
 
     #[test]
     fn query_elevation_returns_bool() {
-        let Ok(token) = open_current_process_token() else {
-            panic!("failed to open current process token");
-        };
-        let result = query_elevation(&token);
-        assert!(result.is_ok(), "should query elevation");
+        let token = open_current_process_token();
+        assert!(token.is_ok(), "should open current process token");
+        if let Ok(tok) = token {
+            let result = query_elevation(&tok);
+            assert!(result.is_ok(), "should query elevation");
+        }
     }
 
     #[test]
@@ -321,29 +322,30 @@ mod tests {
 
     #[test]
     fn check_change_notify_enabled() {
-        let Ok(token) = open_current_process_token() else {
-            panic!("failed to open current process token");
-        };
-        let Ok(luid) = lookup_privilege_value("SeChangeNotifyPrivilege") else {
-            panic!("failed to look up SeChangeNotifyPrivilege");
-        };
-        let result = check_privilege_enabled(&token, luid);
-        assert!(result.is_ok(), "check should succeed");
-        assert!(
-            matches!(result, Ok(true)),
-            "SeChangeNotifyPrivilege should be enabled"
-        );
+        let token = open_current_process_token();
+        assert!(token.is_ok(), "should open current process token");
+        let luid = lookup_privilege_value("SeChangeNotifyPrivilege");
+        assert!(luid.is_ok(), "SeChangeNotifyPrivilege should exist");
+        if let (Ok(tok), Ok(l)) = (token, luid) {
+            let result = check_privilege_enabled(&tok, l);
+            assert!(result.is_ok(), "check should succeed");
+            assert!(
+                matches!(result, Ok(true)),
+                "SeChangeNotifyPrivilege should be enabled"
+            );
+        }
     }
 
     #[test]
     fn enumerate_privileges_non_empty() {
-        let Ok(token) = open_current_process_token() else {
-            panic!("failed to open current process token");
-        };
-        let result = enumerate_token_privileges(&token);
-        assert!(result.is_ok(), "enumeration should succeed");
-        if let Ok(list) = result {
-            assert!(!list.is_empty(), "should have at least one privilege");
+        let token = open_current_process_token();
+        assert!(token.is_ok(), "should open current process token");
+        if let Ok(tok) = token {
+            let result = enumerate_token_privileges(&tok);
+            assert!(result.is_ok(), "enumeration should succeed");
+            if let Ok(list) = result {
+                assert!(!list.is_empty(), "should have at least one privilege");
+            }
         }
     }
 }

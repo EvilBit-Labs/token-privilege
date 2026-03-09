@@ -50,7 +50,7 @@ pub enum TokenPrivilegeError {
     /// Unlike [`InvalidPrivilegeName`](Self::InvalidPrivilegeName), this
     /// indicates an OS-level failure during the lookup rather than an
     /// unknown privilege name.
-    #[error("privilege lookup failed for '{name}': {source}")]
+    #[error("privilege lookup failed for '{name}'")]
     LookupFailed {
         /// The privilege name that was being looked up.
         name: String,
@@ -130,6 +130,11 @@ mod tests {
         assert!(
             msg.contains("SeDebugPrivilege"),
             "unexpected message: {msg}"
+        );
+        // Verify the source error is accessible via Error::source(), not duplicated in display
+        assert!(
+            !msg.contains("not found"),
+            "display should not contain source text to avoid duplication: {msg}"
         );
     }
 
