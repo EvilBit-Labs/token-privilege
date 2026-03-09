@@ -13,15 +13,17 @@ The Clippy lint `undocumented_unsafe_blocks = "deny"` is set in `Cargo.toml`. An
 ### `OwnedHandle::drop` -- `CloseHandle`
 
 ```rust,ignore
-// SAFETY: `CloseHandle` is safe to call on a valid, open handle.
-// After this call the handle is invalidated. Calling `CloseHandle`
-// on an already-closed handle is benign (returns an error we ignore).
+// SAFETY: `CloseHandle` is safe to call on a valid, open handle that
+// we own. The RAII pattern ensures this is called exactly once, when
+// the `OwnedHandle` is dropped. The `is_invalid()` guard skips the
+// call for default-initialized or explicitly invalidated handles.
 unsafe {
-    let _ = CloseHandle(self.0);
+    let close_result = CloseHandle(self.0);
+    debug_assert!(close_result.is_ok(), "CloseHandle failed: {close_result:?}");
 }
 ```
 
-**Invariant:** The `HANDLE` stored in `OwnedHandle` is either valid (opened by `OpenProcessToken`) or `INVALID_HANDLE_VALUE`. The `is_invalid()` check before the call prevents closing an invalid handle. The handle is never cloned or aliased, so double-close is impossible under normal usage.
+**Invariant:** The `HANDLE` stored in `OwnedHandle` is either valid (opened by `OpenProcessToken`) or `INVALID_HANDLE_VALUE`. The `is_invalid()` check before the call prevents closing an invalid handle. The handle is never cloned or aliased, so double-close is impossible under normal usage. A `debug_assert!` verifies the close succeeds in debug builds.
 
 ---
 
@@ -123,7 +125,7 @@ unsafe {
 }
 ```
 
-**Invariant:** The buffer is heap-allocated with exactly `return_length` bytes as reported by the preceding size query. The token handle has not been invalidated between calls.
+**Invariant:** The buffer is a `Vec<u64>` heap-allocated with at least `return_length` bytes (using `div_ceil` to round up to whole `u64` elements). The `Vec<u64>` guarantees 8-byte alignment, which satisfies `TOKEN_PRIVILEGES` alignment requirements on all Windows platforms. The token handle has not been invalidated between calls.
 
 ---
 
@@ -135,7 +137,7 @@ unsafe {
 let token_privileges = unsafe { &*(buffer.as_ptr().cast::<TOKEN_PRIVILEGES>()) };
 ```
 
-**Invariant:** `GetTokenInformation` succeeded, guaranteeing the buffer contains a valid `TOKEN_PRIVILEGES` structure. The buffer is aligned to at least the alignment of `u8`, and `TOKEN_PRIVILEGES` begins with a `u32` (`PrivilegeCount`). The `Vec<u8>` allocation satisfies the alignment requirement because `TOKEN_PRIVILEGES` has the same alignment as `u32`.
+**Invariant:** `GetTokenInformation` succeeded, guaranteeing the buffer contains a valid `TOKEN_PRIVILEGES` structure. The buffer is a `Vec<u64>`, providing 8-byte alignment which exceeds the alignment requirement of `TOKEN_PRIVILEGES` (align 4 on 32-bit, align 8 on 64-bit Windows).
 
 ---
 

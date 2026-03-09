@@ -95,19 +95,17 @@ The CI pipeline generates coverage on Ubuntu, uploads the LCOV report to [Codeco
 
 The CI workflow runs tests across multiple platforms:
 
-| Runner           | Platform | What Runs                              |
-| ---------------- | -------- | -------------------------------------- |
-| `ubuntu-latest`  | Linux    | Stub tests, error tests, quality gate. |
-| `ubuntu-22.04`   | Linux    | Compatibility check on older Ubuntu.   |
-| `macos-latest`   | macOS    | Stub tests, error tests.               |
-| `windows-latest` | Windows  | Full FFI test suite.                   |
+| Runner           | Platform | What Runs                                         |
+| ---------------- | -------- | ------------------------------------------------- |
+| `windows-latest` | Windows  | Code quality (fmt + clippy), full FFI test suite. |
+| `ubuntu-latest`  | Linux    | Stub tests, error tests.                          |
 
 The pipeline structure is:
 
-1. **quality** -- formatting and Clippy checks.
-2. **test** -- run tests on Ubuntu.
-3. **test-cross-platform** -- run tests on all platform runners (depends on **test**).
-4. **coverage** -- generate and upload coverage (depends on **test**).
+1. **quality** -- formatting and Clippy checks (Windows).
+2. **test-windows** -- full test suite + release build (depends on **quality**).
+3. **test-linux-stubs** -- stub validation on Linux (depends on **quality**).
+4. **coverage** -- generate coverage and upload to Codecov (Windows, depends on **test-windows**).
 
 ## Writing New Tests
 

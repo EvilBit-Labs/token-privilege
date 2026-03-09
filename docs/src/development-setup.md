@@ -6,7 +6,7 @@ This page covers how to set up a local development environment for working on `t
 
 ## Prerequisites
 
-- **Rust 1.85+** -- the crate uses the 2024 edition
+- **Rust 1.91+** -- the crate uses the 2024 edition
 - **Git**
 - **[mise](https://mise.jdx.dev/)** -- manages all development tool versions (Rust toolchain, cargo extensions, formatters, linters)
 - **[just](https://just.systems/)** -- command runner (installed automatically by mise)

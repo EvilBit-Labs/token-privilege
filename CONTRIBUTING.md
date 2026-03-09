@@ -12,7 +12,7 @@ Before working in a specific area, check [GOTCHAS.md](GOTCHAS.md) for hard-won l
 
 ## Prerequisites
 
-- **Rust 1.85+** (see `rust-toolchain.toml`)
+- **Rust 1.91+** (see `rust-toolchain.toml`)
 - **Git** with commit signing configured
 - **[mise](https://mise.jdx.dev/)** for toolchain management
 

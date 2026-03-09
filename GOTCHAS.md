@@ -31,4 +31,4 @@ Use proptest to generate random/adversarial privilege name strings and verify th
 
 ## MSRV
 
-MSRV is 1.85, not higher. All dependencies (including `thiserror` 2.x and `windows` 0.62) support 1.85. Don't bump without checking the full dependency tree with `cargo metadata`.
+MSRV is 1.91. All dependencies (including `thiserror` 2.x and `windows` 0.62) support 1.91. Don't bump without checking the full dependency tree with `cargo metadata`.

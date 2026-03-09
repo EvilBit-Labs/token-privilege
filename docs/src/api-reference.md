@@ -134,6 +134,7 @@ for info in enumerate_privileges()? {
 
 ```rust,ignore
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct PrivilegeInfo {
     pub name: String,
     pub enabled: bool,

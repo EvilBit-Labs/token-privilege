@@ -40,16 +40,11 @@ fn check_elevation() -> bool {
     match is_elevated() {
         Ok(elevated) => elevated,
         Err(TokenPrivilegeError::UnsupportedPlatform) => {
-            // On Linux/macOS, fall back to a different check
-            #[cfg(unix)]
-            {
-                // Example: check effective UID on Unix
-                unsafe { libc::geteuid() == 0 }
-            }
-            #[cfg(not(unix))]
-            {
-                false
-            }
+            // On Linux/macOS, fall back to a different check.
+            // For example, check if running as root via std::process::Command:
+            //   std::process::Command::new("id").arg("-u").output()
+            // Or use a platform-specific crate like `nix` (which provides safe wrappers).
+            false
         }
         Err(e) => {
             eprintln!("Elevation check failed: {e}");

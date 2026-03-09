@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Rust 1.85 or later (the crate uses the 2024 edition)
+- Rust 1.91 or later (the crate uses the 2024 edition)
 - Windows for actual privilege queries (Linux and macOS are supported but all functions return `Err(TokenPrivilegeError::UnsupportedPlatform)`)
 
 ## Installation

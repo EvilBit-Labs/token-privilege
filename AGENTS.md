@@ -8,7 +8,7 @@ This file provides guidance to AI coding assistants when working with code in th
 
 `token-privilege` is a safe Rust crate wrapping Windows process token privilege and elevation detection APIs. All `unsafe` Win32 FFI is confined to a single internal module (`ffi.rs`) so downstream consumers can use `#![forbid(unsafe_code)]`. On non-Windows platforms, all public functions return `Err(TokenPrivilegeError::UnsupportedPlatform)`.
 
-Dual-licensed MIT / Apache-2.0. Rust 2024 edition, MSRV 1.85.
+Dual-licensed MIT / Apache-2.0. Rust 2024 edition, MSRV 1.91.
 
 ## Build & Development Commands
 
