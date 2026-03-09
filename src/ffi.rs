@@ -7,7 +7,7 @@
 
 use std::io;
 
-use windows::Win32::Foundation::{CloseHandle, HANDLE, LUID};
+use windows::Win32::Foundation::{BOOL, CloseHandle, HANDLE, LUID};
 use windows::Win32::Security::{
     GetTokenInformation, LUID_AND_ATTRIBUTES, LookupPrivilegeNameW, LookupPrivilegeValueW,
     PRIVILEGE_SET, PrivilegeCheck, SE_PRIVILEGE_ENABLED, SE_PRIVILEGE_ENABLED_BY_DEFAULT,
@@ -58,7 +58,7 @@ pub(crate) fn open_current_process_token() -> Result<OwnedHandle, TokenPrivilege
 /// Query whether the token is elevated (UAC elevation).
 pub(crate) fn query_elevation(token: &OwnedHandle) -> Result<bool, TokenPrivilegeError> {
     let mut elevation = TOKEN_ELEVATION::default();
-    let mut return_length = 0u32;
+    let mut return_length = 0_u32;
     // Safe: compile-time assertion above guarantees this fits in u32.
     const ELEVATION_SIZE: u32 = std::mem::size_of::<TOKEN_ELEVATION>() as u32;
 
@@ -121,7 +121,7 @@ pub(crate) fn check_privilege_enabled(
             Attributes: SE_PRIVILEGE_ENABLED,
         }],
     };
-    let mut result = 0i32;
+    let mut result = BOOL::default();
 
     // SAFETY: We pass a valid token handle and a correctly initialized
     // PRIVILEGE_SET with count=1. `PrivilegeCheck` writes the result.
@@ -130,7 +130,7 @@ pub(crate) fn check_privilege_enabled(
             .map_err(|e| TokenPrivilegeError::CheckFailed(io::Error::from(e)))?;
     }
 
-    Ok(result != 0)
+    Ok(result.as_bool())
 }
 
 /// Enumerate all privileges on the token.
@@ -138,7 +138,7 @@ pub(crate) fn enumerate_token_privileges(
     token: &OwnedHandle,
 ) -> Result<Vec<PrivilegeInfo>, TokenPrivilegeError> {
     // First call to get required buffer size
-    let mut return_length = 0u32;
+    let mut return_length = 0_u32;
 
     // SAFETY: First call with null buffer to query the required size.
     // Expected to fail with ERROR_INSUFFICIENT_BUFFER, which we handle.
@@ -160,7 +160,7 @@ pub(crate) fn enumerate_token_privileges(
         )));
     }
 
-    let mut buffer = vec![0u8; return_length as usize];
+    let mut buffer = vec![0_u8; return_length as usize];
 
     // SAFETY: We pass a buffer of exactly `return_length` bytes as reported
     // by the previous call. `GetTokenInformation` will write TOKEN_PRIVILEGES
@@ -204,17 +204,16 @@ pub(crate) fn enumerate_token_privileges(
 
 /// Look up the name of a privilege by its LUID.
 fn lookup_privilege_name(luid: LUID) -> Result<String, TokenPrivilegeError> {
-    let mut name_len = 0u32;
+    let mut name_len = 0_u32;
 
     // SAFETY: First call with null buffer to get the required name length.
-    let _ =
-        unsafe { LookupPrivilegeNameW(None, &luid, windows::core::PWSTR::null(), &mut name_len) };
+    let _ = unsafe { LookupPrivilegeNameW(None, &luid, None, &mut name_len) };
 
     if name_len == 0 {
         return Err(TokenPrivilegeError::QueryFailed(io::Error::last_os_error()));
     }
 
-    let mut name_buf = vec![0u16; name_len as usize];
+    let mut name_buf = vec![0_u16; name_len as usize];
 
     // SAFETY: We pass a buffer of the size reported by the first call.
     // `LookupPrivilegeNameW` writes the privilege name as a wide string.
@@ -222,7 +221,7 @@ fn lookup_privilege_name(luid: LUID) -> Result<String, TokenPrivilegeError> {
         LookupPrivilegeNameW(
             None,
             &luid,
-            windows::core::PWSTR(name_buf.as_mut_ptr()),
+            Some(windows::core::PWSTR(name_buf.as_mut_ptr())),
             &mut name_len,
         )
         .map_err(|e| TokenPrivilegeError::QueryFailed(io::Error::from(e)))?;
