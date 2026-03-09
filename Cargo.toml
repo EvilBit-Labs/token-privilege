@@ -10,9 +10,10 @@ description = "Safe Rust wrapper around Windows process token privilege and elev
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/EvilBit-Labs/token-privilege"
 documentation = "https://docs.rs/token-privilege"
+homepage = "https://evilbitlabs.io/token-privilege"
 keywords = ["token", "privilege", "elevation", "windows", "security"]
 categories = ["security", "windows"]
-rust-version = "1.85"
+rust-version = "1.91"
 readme = "README.md"
 exclude = [
     # Directories
@@ -160,7 +161,8 @@ workspace = true
 [profile.release]
 lto           = "thin"
 codegen-units = 1
-strip         = true
+strip           = true
+overflow-checks = true
 
 [profile.dist]
 inherits        = "release"
