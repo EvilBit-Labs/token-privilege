@@ -190,15 +190,32 @@ docs-build:
     # Build mdBook
     cd docs && {{ mise_exec }} mdbook build
 
+[windows]
+docs-build:
+    # Build rustdoc
+    {{ mise_exec }} cargo doc --no-deps --document-private-items --target-dir docs/book/api-temp
+    # Move rustdoc output to final location
+    New-Item -ItemType Directory -Force -Path docs/book/api | Out-Null; Copy-Item -Recurse -Force docs/book/api-temp/doc/* docs/book/api/; Remove-Item -Recurse -Force docs/book/api-temp
+    # Build mdBook
+    Set-Location docs; {{ mise_exec }} mdbook build
+
 # Serve documentation locally with live reload
 [unix]
 docs-serve:
     cd docs && {{ mise_exec }} mdbook serve --open
 
+[windows]
+docs-serve:
+    Set-Location docs; {{ mise_exec }} mdbook serve --open
+
 # Clean documentation artifacts
 [unix]
 docs-clean:
     rm -rf docs/book target/doc
+
+[windows]
+docs-clean:
+    Remove-Item -Recurse -Force docs/book, target/doc -ErrorAction SilentlyContinue
 
 # Check documentation (rustdoc link validation + mdBook build)
 [unix]
@@ -206,13 +223,17 @@ docs-check:
     @{{ mise_exec }} cargo doc --no-deps --document-private-items
     cd docs && {{ mise_exec }} mdbook build
 
+[windows]
+docs-check:
+    {{ mise_exec }} cargo doc --no-deps --document-private-items
+    Set-Location docs; {{ mise_exec }} mdbook build
+
 # Generate and serve documentation
 [unix]
 docs: docs-build docs-serve
 
 [windows]
-docs:
-    @echo "mdbook requires a Unix-like environment to serve"
+docs: docs-build docs-serve
 
 # =============================================================================
 # THIRD-PARTY NOTICES
