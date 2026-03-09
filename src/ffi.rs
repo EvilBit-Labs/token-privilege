@@ -7,48 +7,64 @@
 
 use std::io;
 
-use windows::Win32::Foundation::{BOOL, CloseHandle, HANDLE, LUID};
+use windows::Win32::Foundation::{
+    CloseHandle, ERROR_INSUFFICIENT_BUFFER, ERROR_NO_SUCH_PRIVILEGE, HANDLE, LUID,
+};
 use windows::Win32::Security::{
     GetTokenInformation, LUID_AND_ATTRIBUTES, LookupPrivilegeNameW, LookupPrivilegeValueW,
     PRIVILEGE_SET, PrivilegeCheck, SE_PRIVILEGE_ENABLED, SE_PRIVILEGE_ENABLED_BY_DEFAULT,
     SE_PRIVILEGE_REMOVED, TOKEN_ELEVATION, TOKEN_PRIVILEGES, TOKEN_QUERY,
 };
 use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+use windows::core::BOOL;
 
 use crate::PrivilegeInfo;
 use crate::error::TokenPrivilegeError;
 
+/// `PRIVILEGE_SET_ALL_NECESSARY` — all privileges in the set must be held.
+/// Defined in the Windows SDK but not exposed by the `windows` crate.
+const PRIVILEGE_SET_ALL_NECESSARY: u32 = 1;
+
 // Compile-time guarantee that `TOKEN_ELEVATION` fits in a `u32` size parameter.
+#[allow(clippy::as_conversions)] // Compile-time const, safe
 const _: () = assert!(
     std::mem::size_of::<TOKEN_ELEVATION>() <= u32::MAX as usize,
     "TOKEN_ELEVATION size must fit in u32"
 );
 
 /// RAII wrapper for Win32 `HANDLE` that calls `CloseHandle` on drop.
-pub(crate) struct OwnedHandle(HANDLE);
+pub struct OwnedHandle(HANDLE);
+
+impl std::fmt::Debug for OwnedHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OwnedHandle").finish_non_exhaustive()
+    }
+}
 
 impl Drop for OwnedHandle {
     fn drop(&mut self) {
         if !self.0.is_invalid() {
-            // SAFETY: `CloseHandle` is safe to call on a valid, open handle.
-            // After this call the handle is invalidated. Calling `CloseHandle`
-            // on an already-closed handle is benign (returns an error we ignore).
+            // SAFETY: `CloseHandle` is safe to call on a valid, open handle that
+            // we own. The RAII pattern ensures this is called exactly once, when
+            // the `OwnedHandle` is dropped. The `is_invalid()` guard skips the
+            // call for default-initialized or explicitly invalidated handles.
             unsafe {
-                let _ = CloseHandle(self.0);
+                let close_result = CloseHandle(self.0);
+                debug_assert!(close_result.is_ok(), "CloseHandle failed: {close_result:?}");
             }
         }
     }
 }
 
 /// Open the current process token with `TOKEN_QUERY` access.
-pub(crate) fn open_current_process_token() -> Result<OwnedHandle, TokenPrivilegeError> {
+pub fn open_current_process_token() -> Result<OwnedHandle, TokenPrivilegeError> {
     let mut handle = HANDLE::default();
 
     // SAFETY: `GetCurrentProcess()` returns a pseudo-handle that is always valid
     // and does not need to be closed. `OpenProcessToken` writes to `handle` only
     // on success; on failure we return the IO error.
     unsafe {
-        OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut handle)
+        OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &raw mut handle)
             .map_err(|e| TokenPrivilegeError::OpenTokenFailed(io::Error::from(e)))?;
     }
 
@@ -56,11 +72,13 @@ pub(crate) fn open_current_process_token() -> Result<OwnedHandle, TokenPrivilege
 }
 
 /// Query whether the token is elevated (UAC elevation).
-pub(crate) fn query_elevation(token: &OwnedHandle) -> Result<bool, TokenPrivilegeError> {
+pub fn query_elevation(token: &OwnedHandle) -> Result<bool, TokenPrivilegeError> {
+    // Safe: compile-time assertion above guarantees this fits in u32.
+    #[allow(clippy::as_conversions, clippy::cast_possible_truncation)]
+    const ELEVATION_SIZE: u32 = std::mem::size_of::<TOKEN_ELEVATION>() as u32;
+
     let mut elevation = TOKEN_ELEVATION::default();
     let mut return_length = 0_u32;
-    // Safe: compile-time assertion above guarantees this fits in u32.
-    const ELEVATION_SIZE: u32 = std::mem::size_of::<TOKEN_ELEVATION>() as u32;
 
     // SAFETY: We pass a valid token handle and a correctly-sized buffer.
     // `GetTokenInformation` writes at most `elevation_size` bytes into
@@ -71,7 +89,7 @@ pub(crate) fn query_elevation(token: &OwnedHandle) -> Result<bool, TokenPrivileg
             windows::Win32::Security::TokenElevation,
             Some(std::ptr::from_mut(&mut elevation).cast()),
             ELEVATION_SIZE,
-            &mut return_length,
+            &raw mut return_length,
         )
         .map_err(|e| TokenPrivilegeError::QueryFailed(io::Error::from(e)))?;
     }
@@ -80,42 +98,43 @@ pub(crate) fn query_elevation(token: &OwnedHandle) -> Result<bool, TokenPrivileg
 }
 
 /// Look up a privilege LUID by name.
-pub(crate) fn lookup_privilege_value(name: &str) -> Result<LUID, TokenPrivilegeError> {
+pub fn lookup_privilege_value(name: &str) -> Result<LUID, TokenPrivilegeError> {
     let wide_name: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
     let mut luid = LUID::default();
 
     // SAFETY: We pass a null-terminated wide string and a valid LUID pointer.
     // `LookupPrivilegeValueW` writes the LUID on success.
     unsafe {
-        LookupPrivilegeValueW(None, windows::core::PCWSTR(wide_name.as_ptr()), &mut luid).map_err(
-            |e| {
-                let io_err = io::Error::from(e);
-                if io_err.raw_os_error() == Some(1313) {
-                    // ERROR_NO_SUCH_PRIVILEGE
-                    TokenPrivilegeError::InvalidPrivilegeName {
-                        name: name.to_owned(),
-                    }
-                } else {
-                    TokenPrivilegeError::LookupFailed {
-                        name: name.to_owned(),
-                        source: io_err,
-                    }
+        LookupPrivilegeValueW(
+            None,
+            windows::core::PCWSTR(wide_name.as_ptr()),
+            &raw mut luid,
+        )
+        .map_err(|e| {
+            if e.code() == ERROR_NO_SUCH_PRIVILEGE.to_hresult() {
+                TokenPrivilegeError::InvalidPrivilegeName {
+                    name: name.to_owned(),
                 }
-            },
-        )?;
+            } else {
+                TokenPrivilegeError::LookupFailed {
+                    name: name.to_owned(),
+                    source: io::Error::from(e),
+                }
+            }
+        })?;
     }
 
     Ok(luid)
 }
 
 /// Check if a specific privilege (by LUID) is enabled on the token.
-pub(crate) fn check_privilege_enabled(
+pub fn check_privilege_enabled(
     token: &OwnedHandle,
     luid: LUID,
 ) -> Result<bool, TokenPrivilegeError> {
     let mut privilege_set = PRIVILEGE_SET {
         PrivilegeCount: 1,
-        Control: 1, // PRIVILEGE_SET_ALL_NECESSARY
+        Control: PRIVILEGE_SET_ALL_NECESSARY,
         Privilege: [LUID_AND_ATTRIBUTES {
             Luid: luid,
             Attributes: SE_PRIVILEGE_ENABLED,
@@ -126,7 +145,7 @@ pub(crate) fn check_privilege_enabled(
     // SAFETY: We pass a valid token handle and a correctly initialized
     // PRIVILEGE_SET with count=1. `PrivilegeCheck` writes the result.
     unsafe {
-        PrivilegeCheck(token.0, &mut privilege_set, &mut result)
+        PrivilegeCheck(token.0, &raw mut privilege_set, &raw mut result)
             .map_err(|e| TokenPrivilegeError::CheckFailed(io::Error::from(e)))?;
     }
 
@@ -134,7 +153,7 @@ pub(crate) fn check_privilege_enabled(
 }
 
 /// Enumerate all privileges on the token.
-pub(crate) fn enumerate_token_privileges(
+pub fn enumerate_token_privileges(
     token: &OwnedHandle,
 ) -> Result<Vec<PrivilegeInfo>, TokenPrivilegeError> {
     // First call to get required buffer size
@@ -148,21 +167,39 @@ pub(crate) fn enumerate_token_privileges(
             windows::Win32::Security::TokenPrivileges,
             None,
             0,
-            &mut return_length,
+            &raw mut return_length,
         )
     };
 
     // Expected failure — we need the buffer size
-    if size_result.is_ok() || return_length == 0 {
-        return Err(TokenPrivilegeError::QueryFailed(io::Error::new(
-            io::ErrorKind::Other,
-            "unexpected success or zero length from GetTokenInformation size query",
+    match size_result {
+        Ok(()) => {
+            return Err(TokenPrivilegeError::QueryFailed(io::Error::other(
+                "GetTokenInformation unexpectedly succeeded with null buffer",
+            )));
+        }
+        Err(ref e) if e.code() == ERROR_INSUFFICIENT_BUFFER.to_hresult() => {
+            // Expected: buffer was too small, return_length now holds the required size
+        }
+        Err(e) => {
+            return Err(TokenPrivilegeError::QueryFailed(io::Error::from(e)));
+        }
+    }
+    if return_length == 0 {
+        return Err(TokenPrivilegeError::QueryFailed(io::Error::other(
+            "GetTokenInformation returned zero required length",
         )));
     }
 
-    let mut buffer = vec![0_u8; return_length as usize];
+    // Allocate with proper alignment for TOKEN_PRIVILEGES.
+    // We use Vec<u64> to guarantee at least 8-byte alignment, which satisfies
+    // TOKEN_PRIVILEGES alignment requirements on all Windows platforms.
+    #[allow(clippy::as_conversions)] // u32 -> usize safe on all Windows platforms
+    let byte_len = return_length as usize;
+    let u64_len = byte_len.div_ceil(size_of::<u64>());
+    let mut buffer = vec![0_u64; u64_len];
 
-    // SAFETY: We pass a buffer of exactly `return_length` bytes as reported
+    // SAFETY: We pass a buffer of at least `return_length` bytes as reported
     // by the previous call. `GetTokenInformation` will write TOKEN_PRIVILEGES
     // data into this buffer.
     unsafe {
@@ -171,14 +208,17 @@ pub(crate) fn enumerate_token_privileges(
             windows::Win32::Security::TokenPrivileges,
             Some(buffer.as_mut_ptr().cast()),
             return_length,
-            &mut return_length,
+            &raw mut return_length,
         )
         .map_err(|e| TokenPrivilegeError::QueryFailed(io::Error::from(e)))?;
     }
 
-    // SAFETY: The buffer was successfully filled with a TOKEN_PRIVILEGES struct.
-    // We read PrivilegeCount and then iterate over that many LUID_AND_ATTRIBUTES.
+    // SAFETY: Buffer was filled by GetTokenInformation with TOKEN_PRIVILEGES data.
+    // The cast is safe because Vec<u64> guarantees 8-byte alignment, which
+    // satisfies TOKEN_PRIVILEGES alignment requirements (align 4 on 32-bit,
+    // align 8 on 64-bit Windows).
     let token_privileges = unsafe { &*(buffer.as_ptr().cast::<TOKEN_PRIVILEGES>()) };
+    #[allow(clippy::as_conversions)] // u32 -> usize safe on all Windows platforms
     let count = token_privileges.PrivilegeCount as usize;
 
     // SAFETY: The privileges array in TOKEN_PRIVILEGES is a variable-length
@@ -207,12 +247,19 @@ fn lookup_privilege_name(luid: LUID) -> Result<String, TokenPrivilegeError> {
     let mut name_len = 0_u32;
 
     // SAFETY: First call with null buffer to get the required name length.
-    let _ = unsafe { LookupPrivilegeNameW(None, &luid, None, &mut name_len) };
+    let size_result =
+        unsafe { LookupPrivilegeNameW(None, &raw const luid, None, &raw mut name_len) };
 
     if name_len == 0 {
-        return Err(TokenPrivilegeError::QueryFailed(io::Error::last_os_error()));
+        return Err(TokenPrivilegeError::QueryFailed(
+            size_result.err().map_or_else(
+                || io::Error::other("LookupPrivilegeNameW returned zero length without error"),
+                io::Error::from,
+            ),
+        ));
     }
 
+    #[allow(clippy::as_conversions)] // u32 -> usize safe on all Windows platforms
     let mut name_buf = vec![0_u16; name_len as usize];
 
     // SAFETY: We pass a buffer of the size reported by the first call.
@@ -220,15 +267,24 @@ fn lookup_privilege_name(luid: LUID) -> Result<String, TokenPrivilegeError> {
     unsafe {
         LookupPrivilegeNameW(
             None,
-            &luid,
+            &raw const luid,
             Some(windows::core::PWSTR(name_buf.as_mut_ptr())),
-            &mut name_len,
+            &raw mut name_len,
         )
         .map_err(|e| TokenPrivilegeError::QueryFailed(io::Error::from(e)))?;
     }
 
     // name_len now holds the length WITHOUT the null terminator
-    Ok(String::from_utf16_lossy(&name_buf[..name_len as usize]))
+    #[allow(clippy::as_conversions)] // u32 -> usize safe on all Windows platforms
+    let len = name_len as usize;
+    let name_slice = name_buf.get(..len).ok_or_else(|| {
+        TokenPrivilegeError::QueryFailed(io::Error::other("name buffer indexing failed"))
+    })?;
+    String::from_utf16(name_slice).map_err(|_utf16_err| {
+        TokenPrivilegeError::QueryFailed(io::Error::other(
+            "privilege name contained invalid UTF-16",
+        ))
+    })
 }
 
 #[cfg(test)]
