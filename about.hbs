@@ -1,0 +1,29 @@
+# Third Party Notices
+
+The token-privilege library uses source code from third-party libraries which carry their own copyright notices and license terms. These notices are provided below.
+
+In the event that a required notice is missing or incorrect, please notify us
+by [opening an issue](https://github.com/EvilBit-Labs/token-privilege/issues/new).
+
+---
+
+{{#each overview}}
+## {{name}}
+
+Used by {{count}} crate(s):
+
+{{#each ../licenses}}
+{{#if (eq this.id ../id)}}
+{{#each used_by}}
+- [{{crate.name}} {{crate.version}}]({{#if crate.repository}}{{crate.repository}}{{else}}https://crates.io/crates/{{crate.name}}{{/if}})
+{{/each}}
+{{/if}}
+{{/each}}
+
+### License text
+
+```text
+{{{text}}}
+```
+
+{{/each}}
