@@ -22,6 +22,13 @@ Use proptest to generate random/adversarial privilege name strings and verify th
 - `SeChangeNotifyPrivilege` is the reliable test privilege — enabled on every Windows process by default.
 - CI runs primarily on Windows. A single Linux job validates stub behavior.
 
+## Avoiding `expect`/`unwrap` Under Denied Lints
+
+`clippy::panic` and `clippy::unwrap_used` are denied in production code. For compile-time-known values (e.g., `size_of::<T>()`), don't use `try_from(...).expect(...)`. Instead:
+
+1. Add a module-level `const _: () = assert!(...)` to verify the assumption at compile time.
+2. Use `const X: u32 = size_of::<T>() as u32` — a `const` item cannot panic, satisfying both lints.
+
 ## MSRV
 
 MSRV is 1.85, not higher. All dependencies (including `thiserror` 2.x and `windows` 0.62) support 1.85. Don't bump without checking the full dependency tree with `cargo metadata`.
