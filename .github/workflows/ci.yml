@@ -91,7 +91,7 @@ jobs:
               run: rustup component add llvm-tools
 
             - name: Generate coverage
-              run: cargo llvm-cov --all-features --lcov --output-path lcov.info
+              run: cargo llvm-cov nextest --all-features --lcov --output-path lcov.info
 
             - name: Upload to Codecov
               uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
