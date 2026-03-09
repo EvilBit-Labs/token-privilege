@@ -48,10 +48,15 @@ proptest! {
             result,
             Err(token_privilege::TokenPrivilegeError::UnsupportedPlatform)
         ));
-        // On Windows, must be Ok(bool) or a typed error, never a panic
+        // On Windows, must be Ok(bool) or an expected error variant
         #[cfg(target_os = "windows")]
-        {
-            let _ = result;
+        match result {
+            Ok(_)
+            | Err(
+                token_privilege::TokenPrivilegeError::InvalidPrivilegeName { .. }
+                | token_privilege::TokenPrivilegeError::LookupFailed { .. },
+            ) => {}
+            Err(other) => prop_assert!(false, "unexpected error variant: {other}"),
         }
     }
 
@@ -63,9 +68,15 @@ proptest! {
             result,
             Err(token_privilege::TokenPrivilegeError::UnsupportedPlatform)
         ));
+        // On Windows, must be Ok(bool) or an expected error variant
         #[cfg(target_os = "windows")]
-        {
-            let _ = result;
+        match result {
+            Ok(_)
+            | Err(
+                token_privilege::TokenPrivilegeError::InvalidPrivilegeName { .. }
+                | token_privilege::TokenPrivilegeError::LookupFailed { .. },
+            ) => {}
+            Err(other) => prop_assert!(false, "unexpected error variant: {other}"),
         }
     }
 }
