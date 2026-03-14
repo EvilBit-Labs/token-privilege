@@ -250,7 +250,7 @@ third-party-notices:
 # Generate changelog
 [group('docs')]
 changelog:
-    @{{ mise_exec }} git-cliff --output CHANGELOG.md
+    @{{ mise_exec }} git-cliff --output CHANGELOG.md --current
 
 # Generate changelog for a specific version
 [group('docs')]
