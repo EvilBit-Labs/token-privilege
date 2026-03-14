@@ -140,17 +140,17 @@ similar_names            = "warn"
 too_many_lines           = "warn"
 
 [dependencies]
-thiserror = "2.0"
+thiserror = "2.0.18"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.62", features = [
+windows = { version = "0.62.2", features = [
     "Win32_Foundation",
     "Win32_Security",
     "Win32_System_Threading",
 ] }
 
 [dev-dependencies]
-proptest = "1.6.0"
+proptest = "1.10.0"
 
 [lints]
 workspace = true
