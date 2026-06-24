@@ -1,9 +1,9 @@
 [package]
 name = "token-privilege"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 authors = [
-    "UncleSp1d3r <unclespid3r@evilbitlabs.io>",
+    "UncleSp1d3r <unclesp1d3r@evilbitlabs.io>",
     "KryptoKat <kryptokat@evilbitlabs.io>",
 ]
 description = "Safe Rust wrapper around Windows process token privilege and elevation detection APIs"
