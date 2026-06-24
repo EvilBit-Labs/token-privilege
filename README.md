@@ -1,6 +1,9 @@
 # token-privilege
 
-[![CI](https://github.com/EvilBit-Labs/token-privilege/actions/workflows/ci.yml/badge.svg)](https://github.com/EvilBit-Labs/token-privilege/actions/workflows/ci.yml) [![Crates.io](https://img.shields.io/crates/v/token-privilege)](https://crates.io/crates/token-privilege) [![docs.rs](https://docs.rs/token-privilege/badge.svg)](https://docs.rs/token-privilege) [![License](https://img.shields.io/crates/l/token-privilege)](LICENSE-MIT)
+<!-- OpenSSF Best Practices: replace PLACEHOLDER_PROJECT_ID below with the numeric
+     project ID issued after registering at https://www.bestpractices.dev (see #6). -->
+
+[![CI](https://github.com/EvilBit-Labs/token-privilege/actions/workflows/ci.yml/badge.svg)](https://github.com/EvilBit-Labs/token-privilege/actions/workflows/ci.yml) [![Crates.io](https://img.shields.io/crates/v/token-privilege)](https://crates.io/crates/token-privilege) [![docs.rs](https://docs.rs/token-privilege/badge.svg)](https://docs.rs/token-privilege) [![License](https://img.shields.io/crates/l/token-privilege)](LICENSE-MIT) [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/EvilBit-Labs/token-privilege/badge)](https://scorecard.dev/viewer/?uri=github.com/EvilBit-Labs/token-privilege) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/PLACEHOLDER_PROJECT_ID/badge)](https://www.bestpractices.dev/projects/PLACEHOLDER_PROJECT_ID)
 
 Safe Rust wrapper for Windows process token privilege and elevation detection.
 

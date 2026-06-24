@@ -1,16 +1,4 @@
 # mdformat configuration - consistent with Prettier and markdownlint
-exclude = [
-    "venv/**",
-    "**/node_modules/**",
-    "**/*.txt",
-    "**/*.mdc",
-    "**/*.tpl.md",
-    "**/CHANGELOG.md",
-    "target/**",
-    "megalinter-reports/**",
-    "**/*.result",
-    "**/*.testfile",
-]
 validate = true
 number = true
 wrap = "no"
