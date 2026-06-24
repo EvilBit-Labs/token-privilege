@@ -1,11 +1,15 @@
 version: 2
 updates:
+    # Cargo dependency bumps affect the published crate, so use a release-worthy
+    # prefix. `fix(deps)` matches release-plz `release_commits` and cuts a patch
+    # release. GitHub Actions / devcontainers bumps stay `chore(deps)` (CI/tooling
+    # only) so they do NOT trigger a crate release.
     - package-ecosystem: "cargo"
       directory: "/"
       schedule:
           interval: "weekly"
       commit-message:
-          prefix: "chore(deps)"
+          prefix: "fix(deps)"
 
     - package-ecosystem: "github-actions"
       directory: "/"
