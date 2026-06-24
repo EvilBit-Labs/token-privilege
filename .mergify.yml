@@ -36,36 +36,6 @@ pull_request_rules:
       review:
         type: APPROVE
 
-  - name: Auto-merge release-plz PRs
-    conditions:
-      - author = release-plz[bot]
-      - label = release
-      - check-success = Code Quality
-      - check-success = Test (Windows)
-    actions:
-      queue:
-        name: default
-
-  - name: Auto-merge Dependabot PRs when CI passes
-    conditions:
-      - author = dependabot[bot]
-      - label != do-not-merge
-      - check-success = Code Quality
-      - check-success = Test (Windows)
-    actions:
-      queue:
-        name: default
-
-  - name: Auto-merge Dosubot PRs when CI passes
-    conditions:
-      - author = dosubot[bot]
-      - label != do-not-merge
-      - check-success = Code Quality
-      - check-success = Test (Windows)
-    actions:
-      queue:
-        name: default
-
   - name: Keep bot PRs up to date
     conditions:
       - or:
@@ -74,3 +44,25 @@ pull_request_rules:
           - author = release-plz[bot]
     actions:
       update: {}
+
+merge_protections_settings:
+  reporting_method: check-runs
+  # Auto-enqueue bot PRs once CI passes. This is the mechanism that actually
+  # auto-merges (the pull_request_rules `queue` action only renders a manual
+  # checkbox in this Mergify version). Each PR still has to satisfy the
+  # `default` queue rule's merge_conditions (Code Quality + Test (Windows))
+  # before it merges.
+  auto_merge_conditions:
+    - or:
+        - and:
+            - base = main
+            - label != do-not-merge
+            - author = dependabot[bot]
+        - and:
+            - base = main
+            - label != do-not-merge
+            - author = dosubot[bot]
+        - and:
+            - base = main
+            - label = release
+            - author = release-plz[bot]
