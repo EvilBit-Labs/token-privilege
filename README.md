@@ -1,6 +1,6 @@
 # token-privilege
 
-[![CI](https://github.com/EvilBit-Labs/token-privilege/actions/workflows/ci.yml/badge.svg)](https://github.com/EvilBit-Labs/token-privilege/actions/workflows/ci.yml) [![Crates.io](https://img.shields.io/crates/v/token-privilege)](https://crates.io/crates/token-privilege) [![docs.rs](https://docs.rs/token-privilege/badge.svg)](https://docs.rs/token-privilege) [![License](https://img.shields.io/crates/l/token-privilege)](LICENSE-MIT)
+[![CI](https://github.com/EvilBit-Labs/token-privilege/actions/workflows/ci.yml/badge.svg)](https://github.com/EvilBit-Labs/token-privilege/actions/workflows/ci.yml) [![Crates.io](https://img.shields.io/crates/v/token-privilege)](https://crates.io/crates/token-privilege) [![docs.rs](https://docs.rs/token-privilege/badge.svg)](https://docs.rs/token-privilege) [![License](https://img.shields.io/crates/l/token-privilege)](LICENSE-MIT) [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/EvilBit-Labs/token-privilege/badge)](https://scorecard.dev/viewer/?uri=github.com/EvilBit-Labs/token-privilege) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13349/badge)](https://www.bestpractices.dev/projects/13349)
 
 Safe Rust wrapper for Windows process token privilege and elevation detection.
 
